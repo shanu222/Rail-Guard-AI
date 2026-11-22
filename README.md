@@ -30,7 +30,7 @@ cp apps/api/.env.example apps/api/.env        # set JWT_ACCESS_SECRET (and the o
 cp apps/web/.env.example apps/web/.env.local
 pnpm infra:up                                  # PostGIS 16, Redis, MinIO (R2 stand-in, bucket railguard-media)
 pnpm db:migrate                                # prisma migrate deploy
-pnpm db:seed                                   # demo division, 247 segments, 3 crossings, 5 devices, 4 users
+pnpm db:seed                                   # demo division on the real Chaklala-Taxila ML-1 line (OSM), 5 devices, 4 users
 pnpm dev                                       # API on :4000 (docs at /docs), web on :3000
 ```
 

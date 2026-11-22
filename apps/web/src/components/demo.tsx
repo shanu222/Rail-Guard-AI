@@ -80,7 +80,7 @@ export function DemoTab() {
         <Card>
           <CardHeader
             title="Show demo data"
-            sub="Creates the demo division (24.7 km section, 247 segments, 3 level crossings, 2 Track Units, 3 Crossing Units) with simulated history, reviews, risk scores and work orders."
+            sub="Uses the REAL Chaklala - Taxila stretch of Main Line ML-1 from OpenStreetMap (36.6 km, 6 stations, 14 level crossings, 8 bridges). Devices, detections, crossing events, reviews, risk scores and work orders on it are SIMULATED."
           />
           <div className="flex flex-wrap items-end gap-3 p-4">
             <Field label="History">

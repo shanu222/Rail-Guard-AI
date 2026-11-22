@@ -96,15 +96,15 @@ export async function loadDemo(opts: { days?: number } = {}) {
     VALUES (${sectionId}::uuid, ${division.id}::uuid, ${DEMO_SECTION.name}, ${DEMO_SECTION.fromStation},
             ${DEMO_SECTION.toStation}, ${Number((geo.lengthM / 1000).toFixed(3))},
             ST_GeomFromText(${toWktLineString(geo.line)}, 4326))`;
-  const crossings: { id: string; unitId: string }[] = [];
+  const crossings: { id: string; unitId: string | null }[] = [];
   for (const [i, c] of geo.crossings.entries()) {
     const id = randomUUID();
     const unitIdx = DEMO_DEVICES.findIndex((d) => 'crossingIdx' in d && d.crossingIdx === i);
     await prisma.$executeRaw`
       INSERT INTO crossings (id, division_id, name, geom, status, danger_zone, unit_id)
       VALUES (${id}::uuid, ${division.id}::uuid, ${c.name}, ST_GeomFromText(${toWktPoint(c.point)}, 4326),
-              'ACTIVE'::"CrossingStatus", ${JSON.stringify(c.dangerZone)}::jsonb, ${deviceIds[unitIdx]!}::uuid)`;
-    crossings.push({ id, unitId: deviceIds[unitIdx]! });
+              'ACTIVE'::"CrossingStatus", ${JSON.stringify(c.dangerZone)}::jsonb, ${unitIdx >= 0 ? deviceIds[unitIdx]! : null}::uuid)`;
+    crossings.push({ id, unitId: unitIdx >= 0 ? deviceIds[unitIdx]! : null });
   }
   const segIds: string[] = [];
   for (let i = 0; i < geo.segments.length; i += 50) {
@@ -208,13 +208,15 @@ export async function loadDemo(opts: { days?: number } = {}) {
   const events = [];
   for (let d = days; d >= 0; d--)
     for (const c of crossings) {
+      if (!c.unitId) continue; // only crossings fitted with a (demo) unit produce events
+      const unitId = c.unitId;
       const n = 3 + Math.floor(rand() * 6);
       for (let k = 0; k < n; k++) {
         const train = rand() < 0.4;
         events.push({
           id: randomUUID(),
           crossingId: c.id,
-          deviceId: c.unitId,
+          deviceId: unitId,
           occurredAt: new Date(now - d * DAY - rand() * DAY),
           objectClass: pick(CROSSING_OBJECT_CLASSES),
           trainApproaching: train,

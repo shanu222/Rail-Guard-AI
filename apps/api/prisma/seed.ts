@@ -121,7 +121,7 @@ async function main() {
       await prisma.$executeRaw`
         INSERT INTO crossings (id, division_id, name, geom, status, danger_zone, unit_id)
         VALUES (${id}::uuid, ${division.id}::uuid, ${c.name}, ST_GeomFromText(${toWktPoint(c.point)}, 4326),
-                'ACTIVE'::"CrossingStatus", ${JSON.stringify(c.dangerZone)}::jsonb, ${deviceIds[unitIdx]!}::uuid)`;
+                'ACTIVE'::"CrossingStatus", ${JSON.stringify(c.dangerZone)}::jsonb, ${unitIdx >= 0 ? deviceIds[unitIdx]! : null}::uuid)`;
       crossingIds.push(id);
     }
 

@@ -3,6 +3,15 @@ import maplibregl, { type GeoJSONSource, type Map as MlMap } from 'maplibre-gl';
 import { useEffect, useRef } from 'react';
 import { RISK_COLORS } from '@railguard/shared';
 
+/**
+ * All map sources are free, open data (no API keys, no paid service):
+ *  - OpenStreetMap standard tiles; OpenTopoMap (contours / relief)
+ *  - OpenRailwayMap: the REAL Pakistan Railways network from OSM (tracks, stations, max speed, signals)
+ *  - AWS Terrain Tiles (Terrarium DEM, public dataset) for 3D terrain and hillshade
+ */
+const ORM = (style: string) =>
+  ['a', 'b', 'c'].map((s) => `https://${s}.tiles.openrailwaymap.org/${style}/{z}/{x}/{y}.png`);
+
 const OSM_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -14,9 +23,95 @@ const OSM_STYLE: maplibregl.StyleSpecification = {
       maxzoom: 19,
       attribution: '© OpenStreetMap contributors',
     },
+    topo: {
+      type: 'raster',
+      tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      maxzoom: 17,
+      attribution: '© OpenTopoMap (CC-BY-SA)',
+    },
+    'orm-standard': {
+      type: 'raster',
+      tiles: ORM('standard'),
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: '© OpenRailwayMap',
+    },
+    'orm-maxspeed': { type: 'raster', tiles: ORM('maxspeed'), tileSize: 256, maxzoom: 19 },
+    'orm-signals': { type: 'raster', tiles: ORM('signals'), tileSize: 256, maxzoom: 19 },
+    dem: {
+      type: 'raster-dem',
+      tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      maxzoom: 14,
+      encoding: 'terrarium',
+      attribution: 'Terrain: Mapzen / AWS Terrain Tiles',
+    },
   },
-  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+  layers: [
+    { id: 'osm', type: 'raster', source: 'osm' },
+    { id: 'topo', type: 'raster', source: 'topo', layout: { visibility: 'none' } },
+    {
+      id: 'hillshade',
+      type: 'hillshade',
+      source: 'dem',
+      layout: { visibility: 'none' },
+      paint: { 'hillshade-exaggeration': 0.35 },
+    },
+    {
+      id: 'orm-standard',
+      type: 'raster',
+      source: 'orm-standard',
+      paint: { 'raster-opacity': 0.85 },
+    },
+    {
+      id: 'orm-maxspeed',
+      type: 'raster',
+      source: 'orm-maxspeed',
+      layout: { visibility: 'none' },
+      paint: { 'raster-opacity': 0.9 },
+    },
+    {
+      id: 'orm-signals',
+      type: 'raster',
+      source: 'orm-signals',
+      layout: { visibility: 'none' },
+      paint: { 'raster-opacity': 0.9 },
+    },
+  ],
 };
+
+/** Pakistan bounding box [west, south, east, north]. */
+const PAKISTAN: [number, number, number, number] = [60.8, 23.6, 77.9, 37.1];
+
+/** Tiny map button that zooms to fixed bounds (e.g. the whole national network). */
+class FitControl implements maplibregl.IControl {
+  private box?: HTMLDivElement;
+  constructor(
+    private title: string,
+    private text: string,
+    private bounds: [number, number, number, number],
+  ) {}
+  onAdd(m: MlMap) {
+    this.box = document.createElement('div');
+    this.box.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.title = this.title;
+    b.setAttribute('aria-label', this.title);
+    b.textContent = this.text;
+    b.style.cssText = 'font:700 11px/1 system-ui;width:29px;height:29px';
+    b.onclick = () => m.fitBounds(this.bounds, { padding: 20, pitch: 0, bearing: 0 });
+    this.box.appendChild(b);
+    return this.box;
+  }
+  onRemove() {
+    this.box?.remove();
+  }
+}
+
+export type Basemap = 'streets' | 'topo';
+export type RailOverlay = 'none' | 'standard' | 'maxspeed' | 'signals';
 
 export type MapMode = 'risk' | 'heat' | 'flood';
 type FC = GeoJSON.FeatureCollection;
@@ -70,6 +165,11 @@ interface Props {
   className?: string;
   /** Fit to the segment data the first time it arrives. */
   fit?: boolean;
+  basemap?: Basemap;
+  /** Real railway network overlay from OpenRailwayMap. */
+  rail?: RailOverlay;
+  /** 3D terrain (tilted view + hillshade). */
+  terrain3d?: boolean;
 }
 
 export function RiskMap({
@@ -83,6 +183,9 @@ export function RiskMap({
   onSelectCrossing,
   className,
   fit = true,
+  basemap = 'streets',
+  rail = 'standard',
+  terrain3d = false,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
@@ -130,7 +233,16 @@ export function RiskMap({
       attributionControl: { compact: true },
     });
     map.current = m;
-    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    m.addControl(
+      new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }),
+      'top-right',
+    );
+    m.addControl(new maplibregl.FullscreenControl(), 'top-right');
+    m.addControl(
+      new FitControl('Show the whole Pakistan Railways network', 'PK', PAKISTAN),
+      'top-right',
+    );
+    m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
     m.on('load', () => {
       m.addSource('segments', { type: 'geojson', data: EMPTY, promoteId: 'id' });
       m.addSource('detections', {
@@ -239,6 +351,7 @@ export function RiskMap({
       }
       ready.current = true;
       apply();
+      applyView();
     });
     return () => {
       m.remove();
@@ -248,6 +361,31 @@ export function RiskMap({
   }, []);
 
   useEffect(apply, [segments, detections, mode, selectedSegmentId]);
+
+  // basemap, real-railway overlay and 3D terrain
+  const view = useRef({ basemap, rail, terrain3d });
+  view.current = { basemap, rail, terrain3d };
+  const applyView = () => {
+    const m = map.current;
+    if (!m || !ready.current) return;
+    const { basemap: b, rail: r, terrain3d: t } = view.current;
+    const vis = (id: string, on: boolean) =>
+      m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    vis('osm', b === 'streets');
+    vis('topo', b === 'topo');
+    vis('orm-standard', r === 'standard');
+    vis('orm-maxspeed', r === 'maxspeed');
+    vis('orm-signals', r === 'signals');
+    vis('hillshade', t);
+    if (t) {
+      m.setTerrain({ source: 'dem', exaggeration: 1.6 });
+      if (m.getPitch() < 30) m.easeTo({ pitch: 60, duration: 800 });
+    } else {
+      m.setTerrain(null);
+      if (m.getPitch() > 0) m.easeTo({ pitch: 0, bearing: 0, duration: 600 });
+    }
+  };
+  useEffect(applyView, [basemap, rail, terrain3d]);
 
   // crossings as accessible DOM markers (text label + shape, not colour alone)
   useEffect(() => {

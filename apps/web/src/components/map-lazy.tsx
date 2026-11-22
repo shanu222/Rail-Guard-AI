@@ -11,4 +11,4 @@ export const MiniMap = dynamic(() => import('./map').then((m) => m.MiniMap), {
   ssr: false,
   loading: () => <Skeleton className="h-52 w-full" />,
 });
-export type { MapMode } from './map';
+export type { MapMode, Basemap, RailOverlay } from './map';

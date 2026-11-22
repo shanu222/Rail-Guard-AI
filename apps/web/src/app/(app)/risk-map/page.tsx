@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { RiskMap, type MapMode } from '@/components/map-lazy';
+import { RiskMap, type Basemap, type MapMode, type RailOverlay } from '@/components/map-lazy';
 import {
   Badge,
   Button,
@@ -41,6 +41,10 @@ export default function RiskMapPage() {
   const qc = useQueryClient();
   const [mode, setMode] = useState<MapMode>('risk');
   const [showDet, setShowDet] = useState(true);
+  const [basemap, setBasemap] = useState<Basemap>('streets');
+  const [rail, setRail] = useState<RailOverlay>('standard');
+  const [terrain3d, setTerrain3d] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
   const [sel, setSel] = useState<string | null>(null);
   const [woOpen, setWoOpen] = useState(false);
 
@@ -78,33 +82,100 @@ export default function RiskMapPage() {
           onSelectSegment={setSel}
           onSelectDetection={(id) => router.push(`/detections/${id}`)}
           onSelectCrossing={(id) => router.push(`/crossings/${id}`)}
+          basemap={basemap}
+          rail={rail}
+          terrain3d={terrain3d}
           className="absolute inset-0"
         />
-        <div className="absolute start-3 top-3 z-10 w-56 space-y-2 rounded-xl border border-line bg-white/95 p-3 shadow">
-          <p className="text-xs font-semibold">Layers</p>
-          <div role="radiogroup" aria-label="Colour segments by" className="space-y-1 text-sm">
-            {(
-              [
-                ['risk', 'Risk score (1–5)'],
-                ['heat', 'Heat exposure'],
-                ['flood', 'Flood exposure'],
-              ] as const
-            ).map(([v, l]) => (
-              <label key={v} className="flex cursor-pointer items-center gap-2">
-                <input type="radio" name="mode" checked={mode === v} onChange={() => setMode(v)} />{' '}
-                {l}
-              </label>
-            ))}
+        <div className="absolute start-2 top-2 z-10 max-h-[calc(100%-5rem)] w-[min(15rem,calc(100%-4.5rem))] overflow-y-auto rounded-xl border border-line bg-white/95 p-3 shadow sm:start-3 sm:top-3">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-xs font-semibold"
+            aria-expanded={panelOpen}
+            onClick={() => setPanelOpen((o) => !o)}
+          >
+            Layers <span aria-hidden>{panelOpen ? '▾' : '▸'}</span>
+          </button>
+          <div className={panelOpen ? 'mt-2 space-y-2' : 'hidden'}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+              Colour track by
+            </p>
+            <div role="radiogroup" aria-label="Colour segments by" className="space-y-1 text-sm">
+              {(
+                [
+                  ['risk', 'Risk score (1–5)'],
+                  ['heat', 'Heat exposure'],
+                  ['flood', 'Flood exposure'],
+                ] as const
+              ).map(([v, l]) => (
+                <label key={v} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="radio"
+                    name="mode"
+                    checked={mode === v}
+                    onChange={() => setMode(v)}
+                  />{' '}
+                  {l}
+                </label>
+              ))}
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showDet}
+                onChange={(e) => setShowDet(e.target.checked)}
+              />{' '}
+              Detections
+            </label>
+            <p className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+              Real railway network (OSM)
+            </p>
+            <select
+              aria-label="Railway overlay"
+              className="w-full rounded-md border border-line bg-white px-2 py-1 text-sm"
+              value={rail}
+              onChange={(e) => setRail(e.target.value as RailOverlay)}
+            >
+              <option value="standard">Tracks &amp; stations</option>
+              <option value="maxspeed">Maximum speed</option>
+              <option value="signals">Signalling</option>
+              <option value="none">Hide</option>
+            </select>
+            <p className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+              Base map
+            </p>
+            <div className="flex gap-1 text-sm">
+              {(
+                [
+                  ['streets', 'Streets'],
+                  ['topo', 'Terrain'],
+                ] as const
+              ).map(([v, l]) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={basemap === v}
+                  onClick={() => setBasemap(v)}
+                  className={`flex-1 rounded-md border px-2 py-1 ${basemap === v ? 'border-navy bg-navy text-white' : 'border-line bg-white'}`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={terrain3d}
+                onChange={(e) => setTerrain3d(e.target.checked)}
+              />{' '}
+              3D terrain
+            </label>
+            <p className="text-[11px] text-ink-soft">
+              Press <b>PK</b> (top right) for the whole national network. Right-drag or two-finger
+              drag to tilt in 3D.
+            </p>
+            <Disclaimer />
           </div>
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={showDet}
-              onChange={(e) => setShowDet(e.target.checked)}
-            />{' '}
-            Detections
-          </label>
-          <Disclaimer />
         </div>
         <div className="absolute inset-x-0 bottom-0 z-10 bg-white/95">
           {mode === 'risk' ? (
