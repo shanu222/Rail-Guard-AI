@@ -19,6 +19,7 @@ import {
 import { prisma } from '../db';
 import { audit } from '../lib/audit';
 import { clearDemo, demoStatus, loadDemo } from '../lib/demo';
+import { storageCheck } from '../lib/storage';
 import { HttpError, requirePerm } from '../lib/auth-plugin';
 import { generateDeviceKey } from '../lib/security';
 import { idParams, plain, scopeOf, Uuid } from '../lib/scope';
@@ -496,6 +497,9 @@ export async function adminRoutes(app: FastifyInstance) {
       include: { user: { select: { name: true } } },
     });
   });
+
+  // ---- storage (Cloudflare R2) self-test ----
+  app.get('/v1/admin/storage-check', admin('settings:manage'), async () => storageCheck());
 
   // ---- demo data: load / remove from the Admin screen (Admin only) ----
   app.get('/v1/admin/demo', admin('users:manage'), async () => demoStatus());

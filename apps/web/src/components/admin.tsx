@@ -47,6 +47,50 @@ const Ok = ({ show, children }: { show: boolean; children: ReactNode }) =>
     </p>
   ) : null;
 
+/** Settings > Storage: proves Cloudflare R2 works (reports, photos, snapshots) and shows the exact error. */
+function StorageCheckCard() {
+  const check = useMutation({
+    mutationFn: () =>
+      api<{
+        ok: boolean;
+        bucket: string;
+        endpointHost: string;
+        accessKeyIdLength: number;
+        secretLength: number;
+        hasWhitespace: boolean;
+        error?: string;
+        status?: number | null;
+      }>('/v1/admin/storage-check'),
+  });
+  const r = check.data;
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader
+        title="Storage (Cloudflare R2)"
+        sub="Stored reports, inspector photos and crossing snapshots need R2. Test it here after changing R2 variables."
+      />
+      <div className="space-y-2 p-4 text-sm">
+        <Button disabled={check.isPending} onClick={() => check.mutate()}>
+          {check.isPending ? 'Testing…' : 'Test storage'}
+        </Button>
+        {r && (
+          <div className={r.ok ? 'text-teal-dark' : 'text-risk-5'} role="status">
+            {r.ok
+              ? 'Storage works: write, read and delete succeeded.'
+              : `Storage failed: ${r.error}`}
+            <div className="mt-1 text-xs text-ink-soft">
+              Bucket <code>{r.bucket}</code> · endpoint <code>{r.endpointHost}</code> · access key
+              length {r.accessKeyIdLength} (expected 32) · secret length {r.secretLength} (expected
+              64){r.hasWhitespace && ' · a value contains spaces or quotes - remove them'}
+            </div>
+          </div>
+        )}
+        <Err e={check.error} />
+      </div>
+    </Card>
+  );
+}
+
 // ---------------- Users ----------------
 export function UsersTab() {
   const qc = useQueryClient();
@@ -940,6 +984,7 @@ export function SettingsTab() {
     <Async q={q}>
       {(s) => (
         <div className="grid gap-4 lg:grid-cols-2">
+          <StorageCheckCard />
           <Card>
             <CardHeader
               title="Inspection time baseline"
