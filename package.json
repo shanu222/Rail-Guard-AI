@@ -1,0 +1,31 @@
+{
+  "name": "railguard-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RAILGUARD AI Dashboard - Resilience Technologies Labs (SMC-Private) Limited",
+  "packageManager": "pnpm@10.34.9",
+  "engines": { "node": ">=20" },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "prisma", "argon2", "esbuild"]
+  },
+  "scripts": {
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "db:generate": "pnpm --filter @railguard/api prisma:generate",
+    "db:migrate": "pnpm --filter @railguard/api prisma:deploy",
+    "db:seed": "pnpm --filter @railguard/api seed",
+    "db:seed:dry": "pnpm --filter @railguard/api seed:dry",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.2"
+  }
+}
+
