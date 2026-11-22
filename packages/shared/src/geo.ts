@@ -9,7 +9,8 @@ export function haversineM(a: LonLat, b: LonLat): number {
   const dLat = toRad(b[1] - a[1]);
   const dLon = toRad(b[0] - a[0]);
   const s =
-    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLon / 2) ** 2;
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
@@ -44,7 +45,8 @@ export function pointAlong(coords: LonLat[], distM: number): LonLat {
   let acc = 0;
   for (let i = 1; i < coords.length; i++) {
     const seg = haversineM(coords[i - 1]!, coords[i]!);
-    if (acc + seg >= distM) return lerp(coords[i - 1]!, coords[i]!, seg === 0 ? 0 : (distM - acc) / seg);
+    if (acc + seg >= distM)
+      return lerp(coords[i - 1]!, coords[i]!, seg === 0 ? 0 : (distM - acc) / seg);
     acc += seg;
   }
   return coords[coords.length - 1]!;

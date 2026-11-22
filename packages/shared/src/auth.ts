@@ -2,9 +2,16 @@ import { z } from 'zod';
 import type { Role } from './enums';
 
 export const LoginSchema = z.object({
-  email: z.string().email().max(254).transform((s) => s.toLowerCase()),
+  email: z
+    .string()
+    .email()
+    .max(254)
+    .transform((s) => s.toLowerCase()),
   password: z.string().min(1).max(256),
-  totpCode: z.string().regex(/^\d{6}$/).optional(),
+  totpCode: z
+    .string()
+    .regex(/^\d{6}$/)
+    .optional(),
 });
 
 export const PasswordSchema = z
@@ -16,7 +23,11 @@ export const PasswordSchema = z
   .regex(/\d/, 'Add a digit');
 
 export const CreateUserSchema = z.object({
-  email: z.string().email().max(254).transform((s) => s.toLowerCase()),
+  email: z
+    .string()
+    .email()
+    .max(254)
+    .transform((s) => s.toLowerCase()),
   name: z.string().min(1).max(120),
   role: z.enum(['ADMIN', 'DIVISIONAL_ENGINEER', 'INSPECTOR', 'VIEWER']),
   divisionId: z.string().uuid().nullable(),

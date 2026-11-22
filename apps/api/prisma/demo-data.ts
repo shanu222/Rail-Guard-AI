@@ -4,7 +4,13 @@
  * !! Everything here is ILLUSTRATIVE DEMO DATA. The track line is a plausible curve drawn near
  * !! Rawalpindi, not a survey of any Pakistan Railways asset, and must never be presented as real.
  */
-import { buildSegments, lineLengthM, pointAlong, type LonLat, type SegmentDraft } from '@railguard/shared';
+import {
+  buildSegments,
+  lineLengthM,
+  pointAlong,
+  type LonLat,
+  type SegmentDraft,
+} from '@railguard/shared';
 
 export const DEMO_DIVISION = { name: 'Rawalpindi Division (DEMO)', code: 'RWP-DEMO' } as const;
 export const DEMO_SECTION = {
@@ -144,7 +150,22 @@ export const DEMO_DEVICES = [
 
 export const DEMO_USERS = [
   { email: 'admin@demo.railguard.example', name: 'Demo Admin (RTL)', role: 'ADMIN', scoped: false },
-  { email: 'engineer@demo.railguard.example', name: 'Demo Divisional Engineer', role: 'DIVISIONAL_ENGINEER', scoped: true },
-  { email: 'inspector@demo.railguard.example', name: 'Demo Inspector', role: 'INSPECTOR', scoped: true },
-  { email: 'viewer@demo.railguard.example', name: 'Demo Viewer (Evaluator)', role: 'VIEWER', scoped: true },
+  {
+    email: 'engineer@demo.railguard.example',
+    name: 'Demo Divisional Engineer',
+    role: 'DIVISIONAL_ENGINEER',
+    scoped: true,
+  },
+  {
+    email: 'inspector@demo.railguard.example',
+    name: 'Demo Inspector',
+    role: 'INSPECTOR',
+    scoped: true,
+  },
+  {
+    email: 'viewer@demo.railguard.example',
+    name: 'Demo Viewer (Evaluator)',
+    role: 'VIEWER',
+    scoped: true,
+  },
 ] as const;

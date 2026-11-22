@@ -36,16 +36,22 @@ function summarise() {
   console.log(`curve segments   : ${s.filter((x) => x.isCurve).length}`);
   console.log(`bridge segments  : ${s.filter((x) => x.hasBridge).length}`);
   console.log(`near-crossing    : ${s.filter((x) => x.nearCrossingIdx !== null).length}`);
-  console.log(`crossings        : ${geo.crossings.map((c) => `${c.name}@${c.chainageM}m`).join(', ')}`);
+  console.log(
+    `crossings        : ${geo.crossings.map((c) => `${c.name}@${c.chainageM}m`).join(', ')}`,
+  );
   console.log(`devices          : ${DEMO_DEVICES.length}`);
-  console.log(`first segment len: ${(lineLengthM(s[0]!.coords)).toFixed(1)} m`);
+  console.log(`first segment len: ${lineLengthM(s[0]!.coords).toFixed(1)} m`);
   if (!contiguous) throw new Error('segments are not contiguous');
 }
 
 function newDeviceKey() {
   const prefix = randomBytes(4).toString('hex');
   const secret = randomBytes(24).toString('hex');
-  return { prefix, plaintext: `rgk_${prefix}_${secret}`, hash: createHash('sha256').update(secret).digest('hex') };
+  return {
+    prefix,
+    plaintext: `rgk_${prefix}_${secret}`,
+    hash: createHash('sha256').update(secret).digest('hex'),
+  };
 }
 
 async function main() {
@@ -56,10 +62,13 @@ async function main() {
   }
 
   if (process.env.DEMO_MODE !== 'true') {
-    throw new Error('Refusing to seed demo data: set DEMO_MODE=true (never seed demo data into production).');
+    throw new Error(
+      'Refusing to seed demo data: set DEMO_MODE=true (never seed demo data into production).',
+    );
   }
   const password = process.env.SEED_DEMO_PASSWORD;
-  if (!password || password.length < 12) throw new Error('Set SEED_DEMO_PASSWORD (min 12 chars) in apps/api/.env');
+  if (!password || password.length < 12)
+    throw new Error('Set SEED_DEMO_PASSWORD (min 12 chars) in apps/api/.env');
 
   const { PrismaClient } = await import('@prisma/client');
   const argon2 = (await import('argon2')).default;
@@ -157,15 +166,34 @@ async function main() {
           passwordHash,
         },
       });
-      if (u.role === 'INSPECTOR') await prisma.userSection.create({ data: { userId: user.id, sectionId } });
+      if (u.role === 'INSPECTOR')
+        await prisma.userSection.create({ data: { userId: user.id, sectionId } });
     }
 
     // 7. model versions + settings
     await prisma.modelVersion.createMany({
       data: [
-        { type: 'TRACK_DEFECT', version: '0.1.0-demo', isActive: true, isDemo: true, metrics: { note: 'DEMO placeholder - not an evaluated model' } },
-        { type: 'CROSSING_VISION', version: '0.1.0-demo', isActive: true, isDemo: true, metrics: { note: 'DEMO placeholder - not an evaluated model' } },
-        { type: 'RISK_ENGINE', version: '1.0.0', isActive: true, isDemo: true, metrics: { note: 'Rule-based engine; weights in settings.risk_config' } },
+        {
+          type: 'TRACK_DEFECT',
+          version: '0.1.0-demo',
+          isActive: true,
+          isDemo: true,
+          metrics: { note: 'DEMO placeholder - not an evaluated model' },
+        },
+        {
+          type: 'CROSSING_VISION',
+          version: '0.1.0-demo',
+          isActive: true,
+          isDemo: true,
+          metrics: { note: 'DEMO placeholder - not an evaluated model' },
+        },
+        {
+          type: 'RISK_ENGINE',
+          version: '1.0.0',
+          isActive: true,
+          isDemo: true,
+          metrics: { note: 'Rule-based engine; weights in settings.risk_config' },
+        },
       ],
     });
     const settings: Record<string, unknown> = {

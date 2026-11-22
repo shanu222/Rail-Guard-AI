@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, format, type-check, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version comes from "packageManager" in package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm --filter @railguard/shared test
+      - run: pnpm --filter @railguard/api test # unit + HTTP smoke tests (integration tests skip without a DB)
+
+  integration:
+    name: API integration tests (PostGIS)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: railguard
+          POSTGRES_PASSWORD: railguard
+          POSTGRES_DB: railguard_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U railguard" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://railguard:railguard@localhost:5432/railguard_test
+      DATABASE_URL: postgresql://railguard:railguard@localhost:5432/railguard_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm --filter @railguard/api test
+
+  e2e:
+    name: Playwright end-to-end (login, review, work orders)
+    runs-on: ubuntu-latest
+    needs: [checks, integration]
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: railguard
+          POSTGRES_PASSWORD: railguard
+          POSTGRES_DB: railguard
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U railguard" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      DATABASE_URL: postgresql://railguard:railguard@localhost:5432/railguard
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-access-secret-ci-access-secret
+      DEMO_MODE: 'true'
+      SEED_DEMO_PASSWORD: Railguard-Demo-2026
+      CORS_ORIGIN: http://localhost:3000
+      R2_ENDPOINT: http://localhost:9000
+      R2_ACCESS_KEY_ID: minioadmin
+      R2_SECRET_ACCESS_KEY: minioadmin
+      R2_BUCKET: railguard-media
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_WS_URL: http://localhost:4000
+      NEXT_PUBLIC_DEMO_MODE: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Start MinIO (R2 stand-in)
+        run: |
+          docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin minio/minio server /data
+          docker run --rm --network host --entrypoint sh minio/mc -c "until mc alias set l http://localhost:9000 minioadmin minioadmin; do sleep 1; done; mc mb --ignore-existing l/railguard-media"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm --filter @railguard/web build
+      - run: pnpm --filter @railguard/api build
+      - name: Start API and web
+        run: |
+          pnpm --filter @railguard/api start &
+          pnpm --filter @railguard/web start &
+          npx -y wait-on http://localhost:4000/health http://localhost:3000/login
+      - run: pnpm sim backfill --days 30
+      - run: pnpm --filter @railguard/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @railguard/web e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report

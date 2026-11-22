@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('maplibre-gl/dist/maplibre-gl.css');
+
+:root {
+  color-scheme: light;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  @apply bg-panel text-ink antialiased;
+}
+/* keyboard focus must always be visible (WCAG AA) */
+:focus-visible {
+  outline: 2px solid #e8643a;
+  outline-offset: 2px;
+}
+.skeleton {
+  @apply animate-pulse rounded bg-slate-200;
+}
+/* inspector swipe cards */
+.snap-x-cards {
+  scroll-snap-type: x mandatory;
+}
+.snap-x-cards > * {
+  scroll-snap-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

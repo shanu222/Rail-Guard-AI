@@ -45,6 +45,15 @@ export const DetectionItemSchema = z.object({
   fusionLevel: FusionLevelSchema,
   imageKey: z.string().max(300).optional(),
   audioKey: z.string().max(300).optional(),
+  /** Bounding box in the image, normalised 0..1: [x, y, width, height] from the top-left. */
+  bbox: z
+    .tuple([
+      z.number().min(0).max(1),
+      z.number().min(0).max(1),
+      z.number().min(0).max(1),
+      z.number().min(0).max(1),
+    ])
+    .optional(),
 });
 export type DetectionItem = z.infer<typeof DetectionItemSchema>;
 
@@ -65,6 +74,17 @@ export const CrossingEventItemSchema = z.object({
 });
 export type CrossingEventItem = z.infer<typeof CrossingEventItemSchema>;
 
+/** POST /v1/ingest/runs - an inspection run (trolley/locomotive pass). Upserted by client UUID. */
+export const RunSchema = z.object({
+  id: z.string().uuid(),
+  startedAt: IsoDate,
+  endedAt: IsoDate.optional(),
+  distanceKm: z.number().min(0).max(2000).optional(),
+  speedAvgKmh: z.number().min(0).max(300).optional(),
+  samplesCount: z.number().int().min(0).optional(),
+});
+export type RunItem = z.infer<typeof RunSchema>;
+
 export const CrossingEventBatchSchema = z.object({
   items: z.array(CrossingEventItemSchema).min(1).max(MAX_BATCH_ITEMS),
 });
@@ -73,7 +93,11 @@ export const CrossingEventBatchSchema = z.object({
 export const UploadUrlRequestSchema = z.object({
   kind: z.enum(['image', 'audio', 'snapshot']),
   contentType: z.enum(['image/jpeg', 'image/png', 'audio/wav', 'audio/mpeg', 'audio/ogg']),
-  sizeBytes: z.number().int().positive().max(10 * 1024 * 1024),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(10 * 1024 * 1024),
 });
 export const UploadUrlResponseSchema = z.object({
   key: z.string(),

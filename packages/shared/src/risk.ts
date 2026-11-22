@@ -21,7 +21,12 @@ export const RiskConfigSchema = z.object({
     bounds: z.tuple([z.number(), z.number(), z.number(), z.number()]),
   }),
   severityWeights: z.object({ MINOR: z.number(), MODERATE: z.number(), SEVERE: z.number() }),
-  reviewMultipliers: z.object({ CONFIRMED: z.number(), PENDING: z.number(), NEEDS_INFO: z.number(), REJECTED: z.number() }),
+  reviewMultipliers: z.object({
+    CONFIRMED: z.number(),
+    PENDING: z.number(),
+    NEEDS_INFO: z.number(),
+    REJECTED: z.number(),
+  }),
   lookbackDays: z.number().int().positive(),
   halfLifeDays: z.number().positive(),
   heatTempThresholdC: z.number(),
@@ -60,5 +65,11 @@ export const RISK_COLORS = {
   4: '#E8643A',
   5: '#D62839',
 } as const;
-export const RISK_LABELS = { 1: 'Low', 2: 'Guarded', 3: 'Elevated', 4: 'High', 5: 'Critical' } as const;
+export const RISK_LABELS = {
+  1: 'Low',
+  2: 'Guarded',
+  3: 'Elevated',
+  4: 'High',
+  5: 'Critical',
+} as const;
 export const RISK_DISCLAIMER = 'Decision aid — confirm on site';

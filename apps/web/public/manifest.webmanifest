@@ -1,0 +1,9 @@
+{
+  "name": "RAILGUARD AI",
+  "short_name": "RAILGUARD",
+  "start_url": "/review",
+  "display": "standalone",
+  "background_color": "#0F1B2D",
+  "theme_color": "#0F1B2D",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
