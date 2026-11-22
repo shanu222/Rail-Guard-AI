@@ -7,6 +7,9 @@ WORKDIR /repo
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
 COPY packages/shared packages/shared
+# manifests of the other workspace projects so the frozen lockfile matches the workspace
+COPY apps/web/package.json apps/web/package.json
+COPY packages/simulator/package.json packages/simulator/package.json
 COPY apps/api apps/api
 
 RUN pnpm install --frozen-lockfile --filter @railguard/api...
