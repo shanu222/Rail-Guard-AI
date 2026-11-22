@@ -21,7 +21,8 @@ describe('http layer', () => {
   it('exposes public runtime flags', async () => {
     const r = await app.inject('/v1/config');
     expect(r.statusCode).toBe(200);
-    expect(r.json()).toEqual({ demoMode: true });
+    // badge follows the data; with no database reachable there are no demo records
+    expect(r.json()).toEqual({ demoMode: false, envDemoMode: true });
   });
 
   it('rejects unauthenticated app requests', async () => {
