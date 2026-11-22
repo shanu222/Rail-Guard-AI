@@ -55,6 +55,13 @@ export async function putObject(key: string, body: Buffer, contentType: string) 
   );
 }
 
+/** Read a private object into memory (used to stream stored reports through the API). */
+export async function getObjectBuffer(key: string): Promise<Buffer> {
+  const r = await s3.send(new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: key }));
+  const bytes = await r.Body!.transformToByteArray();
+  return Buffer.from(bytes);
+}
+
 export async function deleteObject(key: string) {
   await s3.send(new DeleteObjectCommand({ Bucket: env.R2_BUCKET, Key: key }));
 }

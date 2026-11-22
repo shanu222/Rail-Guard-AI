@@ -91,15 +91,27 @@ export async function downloadFile(path: string, filename: string, query?: Opts[
           .map(([k, v]) => [k, String(v)]),
       )
     : '';
-  const res = await fetch(`${API_URL}${path}${qs}`, {
-    credentials: 'include',
-    headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
-  });
-  if (!res.ok) throw new ApiError(res.status, 'Download failed');
+  const get = () =>
+    fetch(`${API_URL}${path}${qs}`, {
+      credentials: 'include',
+      headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
+    });
+  let res = await get();
+  if (res.status === 401 && (await refreshSession())) res = await get();
+  if (!res.ok) {
+    const t = await res.text();
+    const d = t ? safeJson(t) : null;
+    throw new ApiError(res.status, d?.message ?? 'Download failed', d);
+  }
+  const cd = res.headers.get('content-disposition') ?? '';
+  const name = /filename="?([^";]+)"?/.exec(cd)?.[1] ?? filename;
   const url = URL.createObjectURL(await res.blob());
-  const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  // revoking immediately can cancel the download in some browsers
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /** POST JSON and save the binary (PDF) response as a file. Returns whether it was archived server-side. */

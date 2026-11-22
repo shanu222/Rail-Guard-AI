@@ -57,7 +57,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     queryFn: () => api<{ demoMode: boolean }>('/v1/config'),
     staleTime: 3_600_000,
   });
-  const demo = DEMO_MODE || config.data?.demoMode;
+  // The badge follows the data (demo-flagged records present); env flag only until config loads.
+  const demo = config.data ? config.data.demoMode : DEMO_MODE;
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');

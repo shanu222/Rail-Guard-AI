@@ -111,7 +111,11 @@ export async function buildApp() {
   app.get(
     '/v1/config',
     { schema: { tags: ['meta'], summary: 'Public runtime flags' } },
-    async () => ({ demoMode: env.DEMO_MODE }),
+    // The DEMO DATA badge follows the data: shown whenever demo-flagged records exist.
+    async () => {
+      const demoDevices = await prisma.device.count({ where: { isDemo: true } }).catch(() => 0);
+      return { demoMode: demoDevices > 0, envDemoMode: env.DEMO_MODE };
+    },
   );
 
   await app.register(authRoutes);

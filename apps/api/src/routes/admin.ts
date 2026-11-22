@@ -18,6 +18,7 @@ import {
 } from '@railguard/shared';
 import { prisma } from '../db';
 import { audit } from '../lib/audit';
+import { clearDemo, demoStatus, loadDemo } from '../lib/demo';
 import { HttpError, requirePerm } from '../lib/auth-plugin';
 import { generateDeviceKey } from '../lib/security';
 import { idParams, plain, scopeOf, Uuid } from '../lib/scope';
@@ -494,5 +495,21 @@ export async function adminRoutes(app: FastifyInstance) {
       take: limit,
       include: { user: { select: { name: true } } },
     });
+  });
+
+  // ---- demo data: load / remove from the Admin screen (Admin only) ----
+  app.get('/v1/admin/demo', admin('users:manage'), async () => demoStatus());
+
+  app.post('/v1/admin/demo/load', admin('users:manage'), async (req) => {
+    const b = z.object({ days: z.number().int().min(7).max(90).default(45) }).parse(req.body ?? {});
+    const result = await loadDemo({ days: b.days });
+    await audit(req, 'demo.load', 'system', null, null, result);
+    return result;
+  });
+
+  app.post('/v1/admin/demo/clear', admin('users:manage'), async (req) => {
+    const result = await clearDemo();
+    await audit(req, 'demo.clear', 'system', null, null, result.removed);
+    return result;
   });
 }

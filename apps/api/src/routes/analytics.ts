@@ -6,8 +6,7 @@ import { HttpError, requirePerm } from '../lib/auth-plugin';
 import { analytics, monthSummary, pilotMetrics } from '../lib/metrics';
 import { buildMonthlyPdf } from '../lib/pdf';
 import { idParams, plain, scopeOf, Uuid } from '../lib/scope';
-import { makeKey, presignGet, putObject } from '../lib/storage';
-import { env } from '../env';
+import { getObjectBuffer, makeKey, presignGet, putObject } from '../lib/storage';
 import { loadRiskConfig } from '../risk/run';
 
 export async function analyticsRoutes(app: FastifyInstance) {
@@ -86,7 +85,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
           divisionName: division.name,
           month: b.month,
           summary,
-          demo: env.DEMO_MODE || demoDevices > 0,
+          demo: demoDevices > 0,
           config,
           generatedBy: me ? `${me.name} (${me.role})` : undefined,
         }),
@@ -135,6 +134,35 @@ export async function analyticsRoutes(app: FastifyInstance) {
       if (!rep || (req.user.div && rep.divisionId !== req.user.div))
         throw new HttpError(404, 'Not found');
       return { url: await presignGet(rep.r2Key, 300) };
+    },
+  );
+
+  /** Stored report streamed through the API (no popup, no bucket CORS needed). */
+  app.get(
+    '/v1/reports/:id/file',
+    { preHandler: requirePerm(app, 'reports:read'), schema: { tags: ['reports'] } },
+    async (req, reply) => {
+      const { id } = idParams.parse(req.params);
+      const rep = await prisma.report.findUnique({
+        where: { id },
+        include: { division: { select: { name: true } } },
+      });
+      if (!rep || (req.user.div && rep.divisionId !== req.user.div))
+        throw new HttpError(404, 'Not found');
+      let pdf: Buffer;
+      try {
+        pdf = await getObjectBuffer(rep.r2Key);
+      } catch (err) {
+        req.log.error(`stored report read failed: ${(err as Error).message?.slice(0, 300)}`);
+        throw new HttpError(502, 'The stored report could not be read. Generate it again.');
+      }
+      const safe =
+        rep.division.name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'division';
+      return reply
+        .header('content-type', 'application/pdf')
+        .header('content-disposition', `attachment; filename="RAILGUARD-${safe}-${rep.month}.pdf"`)
+        .header('access-control-expose-headers', 'content-disposition')
+        .send(pdf);
     },
   );
 }

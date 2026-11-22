@@ -29,7 +29,7 @@ import {
   Td,
   Th,
 } from '@/components/ui';
-import { api, postDownload } from '@/lib/api';
+import { api, downloadFile, postDownload } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { dt, monthNow, num, pct, pretty } from '@/lib/format';
 
@@ -68,8 +68,8 @@ export default function AnalyticsPage() {
     },
   });
   const open = useMutation({
-    mutationFn: (id: string) => api<{ url: string }>(`/v1/reports/${id}/url`),
-    onSuccess: (r) => window.open(r.url, '_blank', 'noopener'),
+    mutationFn: (r: { id: string; month: string }) =>
+      downloadFile(`/v1/reports/${r.id}/file`, `RAILGUARD-report-${r.month}.pdf`),
   });
 
   return (
@@ -262,6 +262,11 @@ export default function AnalyticsPage() {
               {(gen.error as Error).message}
             </p>
           )}
+          {open.error && (
+            <p role="alert" className="px-4 pb-3 text-sm text-risk-5">
+              {(open.error as Error).message}
+            </p>
+          )}
           {reports.data && reports.data.length > 0 && (
             <Table>
               <thead>
@@ -279,7 +284,7 @@ export default function AnalyticsPage() {
                     <Td>{r.month}</Td>
                     <Td>{dt(r.createdAt)}</Td>
                     <Td>
-                      <Button size="sm" variant="ghost" onClick={() => open.mutate(r.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => open.mutate(r)}>
                         Open PDF
                       </Button>
                     </Td>

@@ -4,6 +4,12 @@ import { useState, type ReactNode } from 'react';
 import { Badge, Button, Card, CardHeader, Field, Input, Select } from '@/components/ui';
 import { API_URL, api } from '@/lib/api';
 import { pretty } from '@/lib/format';
+import {
+  CrossingUnitWiring,
+  InstrumentPicture,
+  TrackUnitWiring,
+  type InstrumentArt,
+} from '@/components/diagrams';
 
 type Instrument = {
   name: string;
@@ -100,14 +106,38 @@ const CROSSING_KIT: Instrument[] = [
   },
 ];
 
-function Kit({ items }: { items: Instrument[] }) {
+const TRACK_ART: InstrumentArt[] = [
+  'camera',
+  'imu',
+  'mic',
+  'gnss',
+  'compute',
+  'modem',
+  'power',
+  'enclosure',
+];
+const CROSSING_ART: InstrumentArt[] = [
+  'nightcam',
+  'compute',
+  'trainsensor',
+  'beacon',
+  'solar',
+  'modem',
+  'thermal',
+  'mast',
+];
+
+function Kit({ items, arts }: { items: Instrument[]; arts: InstrumentArt[] }) {
   return (
     <ul className="divide-y divide-line">
-      {items.map((i) => (
-        <li key={i.name} className="grid gap-1 px-4 py-3 md:grid-cols-[1.2fr_1.4fr_1fr]">
-          <div>
-            <div className="text-sm font-medium text-ink">{i.name}</div>
-            {i.note && <div className="mt-0.5 text-xs text-ink-soft">{i.note}</div>}
+      {items.map((i, idx) => (
+        <li key={i.name} className="grid gap-2 px-4 py-3 md:grid-cols-[1.4fr_1.3fr_1fr]">
+          <div className="flex gap-3">
+            <InstrumentPicture kind={arts[idx] ?? 'enclosure'} label={i.name} />
+            <div>
+              <div className="text-sm font-medium text-ink">{i.name}</div>
+              {i.note && <div className="mt-0.5 text-xs text-ink-soft">{i.note}</div>}
+            </div>
           </div>
           <div className="text-sm text-ink-soft">{i.role}</div>
           <div className="text-xs text-ink-soft">
@@ -264,7 +294,11 @@ POST ${API_URL}/v1/ingest/runs`}</Code>
           title="Track Unit - instruments"
           sub="Mounted on an inspection trolley or locomotive. Reference specification: final part selection is made by RTL engineering and procurement."
         />
-        <Kit items={TRACK_KIT} />
+        <Kit items={TRACK_KIT} arts={TRACK_ART} />
+        <div className="border-t border-line p-3">
+          <div className="mb-2 px-1 text-sm font-semibold text-ink">How they connect</div>
+          <TrackUnitWiring />
+        </div>
       </Card>
 
       <Card>
@@ -272,7 +306,11 @@ POST ${API_URL}/v1/ingest/runs`}</Code>
           title="Crossing Unit - instruments"
           sub="Solar-powered, installed at an unmanned level crossing. Reference specification: final part selection is made by RTL engineering and procurement."
         />
-        <Kit items={CROSSING_KIT} />
+        <Kit items={CROSSING_KIT} arts={CROSSING_ART} />
+        <div className="border-t border-line p-3">
+          <div className="mb-2 px-1 text-sm font-semibold text-ink">How they connect</div>
+          <CrossingUnitWiring />
+        </div>
       </Card>
 
       <WeatherCard />

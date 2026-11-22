@@ -8,6 +8,8 @@ import {
   SettingsTab,
   UsersTab,
 } from '@/components/admin';
+import { DemoTab } from '@/components/demo';
+import { SystemTab } from '@/components/diagrams';
 import { HardwareTab } from '@/components/hardware';
 import { PageTitle, cn } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -24,7 +26,9 @@ const TABS = [
     C: HardwareTab,
   },
   { id: 'models', label: 'Model versions', perm: 'models:manage' as const, C: ModelsTab },
+  { id: 'system', label: 'System diagram', perm: 'devices:manage' as const, C: SystemTab },
   { id: 'settings', label: 'Settings', perm: 'settings:manage' as const, C: SettingsTab },
+  { id: 'demo', label: 'Demo data', perm: 'users:manage' as const, C: DemoTab },
 ];
 
 export default function AdminPage() {

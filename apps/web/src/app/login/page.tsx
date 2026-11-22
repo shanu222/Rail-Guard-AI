@@ -3,7 +3,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button, Field, Input } from '@/components/ui';
-import { DEMO_MODE, ApiError } from '@/lib/api';
+import { DEMO_MODE, ApiError, api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 export default function LoginPage() {
@@ -15,6 +15,13 @@ export default function LoginPage() {
   const [needTotp, setNeedTotp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [demo, setDemo] = useState(DEMO_MODE);
+  useEffect(() => {
+    // badge follows the data: shown only while demo-flagged records exist
+    api<{ demoMode: boolean }>('/v1/config')
+      .then((c) => setDemo(c.demoMode))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (!loading && user) router.replace('/overview');
@@ -43,7 +50,7 @@ export default function LoginPage() {
             <ShieldAlert className="mb-2 h-10 w-10 text-accent" aria-hidden />
             <h1 className="text-2xl font-semibold tracking-tight">RAILGUARD AI</h1>
             <p className="text-sm text-slate-300">Track health &amp; crossing safety dashboard</p>
-            {DEMO_MODE && (
+            {demo && (
               <span className="mt-3 rounded bg-accent px-2 py-0.5 text-xs font-bold">
                 DEMO DATA
               </span>
