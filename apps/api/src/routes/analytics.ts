@@ -54,7 +54,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
       const b = z
         .object({ divisionId: Uuid, month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/) })
         .parse(req.body);
-      const div = scopeOf(req.user, b.divisionId)!;
+      const div = scopeOf(req.user, b.divisionId) ?? b.divisionId;
       const division = await prisma.division.findUnique({ where: { id: div } });
       if (!division) throw new HttpError(404, 'Division not found');
       // Name the failing step so a problem is diagnosable from the UI message and the logs.
@@ -63,7 +63,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
           return await fn();
         } catch (err) {
           const msg = (err as Error).message ?? String(err);
-          req.log.error({ err: msg, step: name }, 'report step failed');
+          req.log.error(`report step failed (${name}): ${msg.slice(0, 300)}`);
           throw new HttpError(
             500,
             `Report failed while ${name}: ${msg.trim().split('\n').pop()?.slice(0, 200)}`,
@@ -96,21 +96,28 @@ export async function analyticsRoutes(app: FastifyInstance) {
       let reportId: string | null = null;
       try {
         const key = makeKey('report', div, 'application/pdf');
-        await putObject(key, pdf, 'application/pdf');
+        // never let a slow storage call hold the user's download hostage
+        await Promise.race([
+          putObject(key, pdf, 'application/pdf'),
+          new Promise((_, rej) =>
+            setTimeout(() => rej(new Error('storage timeout (15 s)')), 15_000),
+          ),
+        ]);
         const rep = await prisma.report.create({
           data: { divisionId: div, month: b.month, r2Key: key, createdById: req.user.sub },
         });
         reportId = rep.id;
-        await audit(req, 'report.generate', 'report', rep.id, null, { month: b.month });
+        await audit(req, 'report.generate', 'report', rep.id, null, { month: b.month }).catch(
+          () => undefined,
+        );
       } catch (err) {
         req.log.error(
-          { err: (err as Error).message },
-          'report archive failed (PDF still returned)',
+          `report archive failed (PDF still returned): ${(err as Error).message?.slice(0, 300)}`,
         );
       }
-      const safe = division.name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const safe = division.name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'division';
       return reply
-        .code(201)
+        .code(200)
         .header('content-type', 'application/pdf')
         .header('content-disposition', `attachment; filename="RAILGUARD-${safe}-${b.month}.pdf"`)
         .header('x-report-archived', reportId ? 'true' : 'false')

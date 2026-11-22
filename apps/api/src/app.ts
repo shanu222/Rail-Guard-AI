@@ -21,6 +21,9 @@ import { mapRoutes } from './routes/map';
 import { overviewRoutes } from './routes/overview';
 import { workOrderRoutes } from './routes/workorders';
 
+/** Deployed commit (Railway sets RAILWAY_GIT_COMMIT_SHA), so /health shows which code is live. */
+const VERSION = (process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_SHA ?? 'local').slice(0, 7);
+
 export async function buildApp() {
   const app = Fastify({
     logger: {
@@ -89,14 +92,18 @@ export async function buildApp() {
       return reply.code(404).send({ error: 'Not found', message: 'Not found' });
     if (err.statusCode && err.statusCode < 500)
       return reply.code(err.statusCode).send({ error: err.code ?? 'Error', message: err.message });
-    req.log.error({ err: err.message }, 'unhandled error'); // message only: never dump request bodies
-    return reply.code(500).send({ error: 'Internal', message: 'Internal server error', debug: String(err.message).slice(0, 300) }); // TEMP-DEBUG
+    // Put the cause in the log message itself (hosted log viewers often hide structured fields).
+    // Message and route only: never dump request bodies.
+    req.log.error(
+      `unhandled error on ${req.method} ${req.routeOptions?.url ?? req.url}: ${String(err.message).slice(0, 300)}`,
+    );
+    return reply.code(500).send({ error: 'Internal', message: 'Internal server error' });
   });
 
   app.get('/health', { schema: { hide: true } }, async (_req, reply) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
-      return { ok: true, demoMode: env.DEMO_MODE };
+      return { ok: true, demoMode: env.DEMO_MODE, version: VERSION };
     } catch {
       return reply.code(503).send({ ok: false });
     }
