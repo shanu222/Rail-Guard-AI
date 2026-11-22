@@ -90,7 +90,7 @@ export async function buildApp() {
     if (err.statusCode && err.statusCode < 500)
       return reply.code(err.statusCode).send({ error: err.code ?? 'Error', message: err.message });
     req.log.error({ err: err.message }, 'unhandled error'); // message only: never dump request bodies
-    return reply.code(500).send({ error: 'Internal', message: 'Internal server error' });
+    return reply.code(500).send({ error: 'Internal', message: 'Internal server error', debug: String(err.message).slice(0, 300) }); // TEMP-DEBUG
   });
 
   app.get('/health', { schema: { hide: true } }, async (_req, reply) => {
