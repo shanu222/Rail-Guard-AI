@@ -62,20 +62,43 @@ export async function analyticsRoutes(app: FastifyInstance) {
         loadRiskConfig(),
         prisma.device.count({ where: { divisionId: div, isDemo: true } }),
       ]);
+      const me = await prisma.user.findUnique({
+        where: { id: req.user.sub },
+        select: { name: true, role: true },
+      });
       const pdf = await buildMonthlyPdf({
         divisionName: division.name,
         month: b.month,
         summary,
         demo: env.DEMO_MODE || demoDevices > 0,
         config,
+        generatedBy: me ? `${me.name} (${me.role})` : undefined,
       });
-      const key = makeKey('report', div, 'application/pdf');
-      await putObject(key, pdf, 'application/pdf');
-      const rep = await prisma.report.create({
-        data: { divisionId: div, month: b.month, r2Key: key, createdById: req.user.sub },
-      });
-      await audit(req, 'report.generate', 'report', rep.id, null, { month: b.month });
-      return reply.code(201).send({ id: rep.id, month: b.month, url: await presignGet(key, 300) });
+      // Archive in private storage as a best effort: a storage problem must never stop the user
+      // from getting the report they just asked for.
+      let reportId: string | null = null;
+      try {
+        const key = makeKey('report', div, 'application/pdf');
+        await putObject(key, pdf, 'application/pdf');
+        const rep = await prisma.report.create({
+          data: { divisionId: div, month: b.month, r2Key: key, createdById: req.user.sub },
+        });
+        reportId = rep.id;
+        await audit(req, 'report.generate', 'report', rep.id, null, { month: b.month });
+      } catch (err) {
+        req.log.error(
+          { err: (err as Error).message },
+          'report archive failed (PDF still returned)',
+        );
+      }
+      const safe = division.name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      return reply
+        .code(201)
+        .header('content-type', 'application/pdf')
+        .header('content-disposition', `attachment; filename="RAILGUARD-${safe}-${b.month}.pdf"`)
+        .header('x-report-archived', reportId ? 'true' : 'false')
+        .header('access-control-expose-headers', 'content-disposition, x-report-archived')
+        .send(pdf);
     },
   );
 

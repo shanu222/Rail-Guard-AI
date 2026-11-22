@@ -8,6 +8,7 @@ import {
   SettingsTab,
   UsersTab,
 } from '@/components/admin';
+import { HardwareTab } from '@/components/hardware';
 import { PageTitle, cn } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 
@@ -16,6 +17,12 @@ const TABS = [
   { id: 'users', label: 'Users & roles', perm: 'users:manage' as const, C: UsersTab },
   { id: 'geo', label: 'Sections & crossings', perm: 'sections:manage' as const, C: GeographyTab },
   { id: 'devices', label: 'Devices', perm: 'devices:manage' as const, C: DevicesTab },
+  {
+    id: 'hardware',
+    label: 'Instruments & sensors',
+    perm: 'devices:manage' as const,
+    C: HardwareTab,
+  },
   { id: 'models', label: 'Model versions', perm: 'models:manage' as const, C: ModelsTab },
   { id: 'settings', label: 'Settings', perm: 'settings:manage' as const, C: SettingsTab },
 ];

@@ -29,7 +29,7 @@ import {
   Td,
   Th,
 } from '@/components/ui';
-import { api } from '@/lib/api';
+import { api, postDownload } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { dt, monthNow, num, pct, pretty } from '@/lib/format';
 
@@ -58,13 +58,13 @@ export default function AnalyticsPage() {
 
   const gen = useMutation({
     mutationFn: () =>
-      api<{ url: string }>('/v1/reports/monthly', {
-        method: 'POST',
-        body: { divisionId: div, month },
-      }),
-    onSuccess: (r) => {
+      postDownload(
+        '/v1/reports/monthly',
+        { divisionId: div, month },
+        `RAILGUARD-report-${month}.pdf`,
+      ),
+    onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['reports'] });
-      window.open(r.url, '_blank', 'noopener');
     },
   });
   const open = useMutation({
@@ -249,6 +249,14 @@ export default function AnalyticsPage() {
               <FileText className="h-4 w-4" /> {gen.isPending ? 'Generating…' : 'Generate report'}
             </Button>
           </div>
+          {gen.isSuccess && (
+            <p role="status" className="px-4 pb-3 text-sm text-ink-soft">
+              Report downloaded as PDF.
+              {gen.data &&
+                !gen.data.archived &&
+                ' (It could not be archived to storage; check the R2 settings.)'}
+            </p>
+          )}
           {gen.error && (
             <p role="alert" className="px-4 pb-3 text-sm text-risk-5">
               {(gen.error as Error).message}

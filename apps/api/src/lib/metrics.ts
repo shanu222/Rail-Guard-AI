@@ -187,7 +187,20 @@ export async function pilotMetrics(div: string | null) {
 export async function monthSummary(div: string | null, month: string) {
   const { start, end } = monthRange(month);
   const secWhere = div ? Prisma.sql`sec.division_id = ${div}::uuid` : Prisma.sql`TRUE`;
-  const [rev, byClass, bySeverity, top, crossings, devices, km] = await Promise.all([
+  const prevStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 1, 1));
+  const [
+    rev,
+    byClass,
+    bySeverity,
+    top,
+    crossings,
+    devices,
+    km,
+    prevRev,
+    riskDist,
+    workOrders,
+    bySection,
+  ] = await Promise.all([
     reviewCounts(div, start, end),
     prisma.$queryRaw<
       { defect_class: string; n: number }[]
@@ -214,11 +227,42 @@ export async function monthSummary(div: string | null, month: string) {
         firmwareVersion: true,
         modelVersion: true,
         isDemo: true,
+        lastSeenAt: true,
+        batteryPct: true,
       },
     }),
     prisma.$queryRaw<
       { km: number }[]
     >`SELECT COALESCE(SUM(length_km),0)::float AS km FROM sections sec WHERE ${secWhere}`,
+    reviewCounts(div, prevStart, start),
+    prisma.$queryRaw<{ score: number; n: number }[]>`
+      SELECT l.score::int AS score, COUNT(*)::int AS n
+      FROM segment_latest_risk l JOIN segments s ON s.id = l.segment_id JOIN sections sec ON sec.id = s.section_id
+      WHERE ${secWhere} GROUP BY 1 ORDER BY 1`,
+    prisma.$queryRaw<{ status: string; n: number }[]>`
+      SELECT w.status::text AS status, COUNT(*)::int AS n
+      FROM work_orders w JOIN segments s ON s.id = w.segment_id JOIN sections sec ON sec.id = s.section_id
+      WHERE ${secWhere} AND w.created_at < ${end} AND (w.status IN ('OPEN','IN_PROGRESS') OR w.closed_at >= ${start})
+      GROUP BY 1`,
+    prisma.$queryRaw<{ section: string; n: number }[]>`
+      SELECT sec.name AS section, COUNT(*)::int AS n
+      FROM detections d JOIN segments s ON s.id = d.segment_id JOIN sections sec ON sec.id = s.section_id
+      WHERE ${secWhere} AND d.detected_at >= ${start} AND d.detected_at < ${end} AND d.review_status <> 'REJECTED'
+      GROUP BY 1 ORDER BY 2 DESC`,
   ]);
-  return { start, end, rev, byClass, bySeverity, top, crossings, devices, km: km[0]?.km ?? 0 };
+  return {
+    start,
+    end,
+    rev,
+    byClass,
+    bySeverity,
+    top,
+    crossings,
+    devices,
+    km: km[0]?.km ?? 0,
+    prevRev,
+    riskDist,
+    workOrders,
+    bySection,
+  };
 }

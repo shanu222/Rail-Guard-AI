@@ -102,6 +102,40 @@ export async function downloadFile(path: string, filename: string, query?: Opts[
   URL.revokeObjectURL(url);
 }
 
+/** POST JSON and save the binary (PDF) response as a file. Returns whether it was archived server-side. */
+export async function postDownload(
+  path: string,
+  body: unknown,
+  fallbackName: string,
+  retried = false,
+): Promise<{ archived: boolean }> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+      ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401 && !retried && (await refreshSession()))
+    return postDownload(path, body, fallbackName, true);
+  if (!res.ok) {
+    const t = await res.text();
+    const d = t ? safeJson(t) : null;
+    throw new ApiError(res.status, d?.message ?? res.statusText, d);
+  }
+  const cd = res.headers.get('content-disposition') ?? '';
+  const name = /filename="?([^";]+)"?/.exec(cd)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return { archived: res.headers.get('x-report-archived') !== 'false' };
+}
+
 /** PUT a file to a presigned URL, returning when stored. */
 export async function putToPresigned(url: string, file: Blob, contentType: string) {
   const r = await fetch(url, {
