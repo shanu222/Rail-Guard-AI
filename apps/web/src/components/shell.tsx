@@ -120,8 +120,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen lg:flex">
-      <aside className="hidden w-60 shrink-0 bg-navy lg:block">
+    <div className="min-h-dvh lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 overflow-y-auto bg-navy lg:block">
         <div className="flex items-center gap-2 px-5 py-5 text-white">
           <ShieldAlert className="h-6 w-6 text-accent" aria-hidden />
           <span className="text-lg font-semibold tracking-tight">RAILGUARD AI</span>
@@ -132,7 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 start-0 w-64 bg-navy">
+          <aside className="absolute inset-y-0 start-0 w-64 max-w-[85vw] overflow-y-auto bg-navy">
             <div className="flex items-center justify-between px-5 py-4 text-white">
               <span className="font-semibold">RAILGUARD AI</span>
               <button onClick={() => setOpen(false)} aria-label="Close menu">
@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-navy-700 bg-navy px-4 py-2.5 text-white">
+        <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-navy-700 bg-navy px-3 py-2.5 text-white sm:gap-3 sm:px-4">
           <button className="lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
             <Menu className="h-6 w-6" />
           </button>
@@ -193,14 +193,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main id="main" className="min-w-0 flex-1 p-4 pb-24 lg:p-6 lg:pb-6">
+        <main id="main" className="min-w-0 flex-1 overflow-x-clip p-4 pb-24 lg:p-6 lg:pb-6">
           {children}
         </main>
 
         {/* phone bottom bar for the field-critical screens */}
         <nav
           aria-label="Quick"
-          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-white lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
         >
           {[
             { href: '/overview', icon: Gauge, label: 'Home' },

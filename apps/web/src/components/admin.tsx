@@ -349,7 +349,7 @@ export function GeographyTab() {
           <Field label="Section name">
             <Input required value={s.name} onChange={(e) => setS({ ...s, name: e.target.value })} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="From station">
               <Input
                 required
@@ -413,7 +413,7 @@ export function GeographyTab() {
           <Field label="Name">
             <Input required value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Latitude">
               <Input
                 required
@@ -835,7 +835,7 @@ export function RiskTab() {
               <option value="absolute">Absolute raw values</option>
             </Select>
           </Field>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {c.thresholds.bounds.map((b, i) => (
               <Field key={i} label={`1→2…`.replace('1→2…', `Upper bound of ${i + 1}`)}>
                 <Input
@@ -853,7 +853,7 @@ export function RiskTab() {
               </Field>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <Field label="Heat threshold (°C)">
               <Input
                 type="number"
@@ -990,7 +990,7 @@ export function SettingsTab() {
               title="Inspection time baseline"
               sub="Manual inspection effort used to compute time saved (minutes per km)"
             />
-            <div className="flex items-end gap-2 p-4">
+            <div className="flex flex-wrap items-end gap-2 p-4">
               <Field label="Minutes per km">
                 <Input
                   type="number"
@@ -1017,7 +1017,7 @@ export function SettingsTab() {
               title="Privacy: crossing snapshot retention"
               sub="Snapshots are deleted after this many days; only metadata is kept"
             />
-            <div className="flex items-end gap-2 p-4">
+            <div className="flex flex-wrap items-end gap-2 p-4">
               <Field label="Days">
                 <Input
                   type="number"

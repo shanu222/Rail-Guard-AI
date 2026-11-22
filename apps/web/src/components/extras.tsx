@@ -68,7 +68,7 @@ export function CreateWorkOrder({
   return (
     <Modal open={open} onClose={onClose} title="Create work order">
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Priority">
             <Select value={priority} onChange={(e) => setPriority(e.target.value)}>
               {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((p) => (

@@ -71,15 +71,27 @@ export default function RiskMapPage() {
   const c = d?.latest?.components;
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-56px)] flex-col lg:-m-6 lg:h-[calc(100vh-56px)] lg:flex-row">
-      <div className="relative min-h-[50vh] flex-1">
+    <div className="-m-4 flex flex-col lg:-m-6 lg:h-[calc(100dvh-57px)] lg:flex-row">
+      {/* phone/tablet: map takes most of the screen, details scroll below it */}
+      <div className="relative h-[68dvh] min-h-[360px] lg:h-auto lg:flex-1">
         <RiskMap
           segments={segs.data}
           detections={showDet ? dets.data : undefined}
           crossings={crossings.data ?? []}
           mode={mode}
           selectedSegmentId={sel}
-          onSelectSegment={setSel}
+          onSelectSegment={(id) => {
+            setSel(id);
+            // on phones the details sit under the map: bring them into view
+            if (window.matchMedia('(max-width: 1023px)').matches)
+              setTimeout(
+                () =>
+                  document
+                    .getElementById('segment-details')
+                    ?.scrollIntoView({ behavior: 'smooth' }),
+                50,
+              );
+          }}
           onSelectDetection={(id) => router.push(`/detections/${id}`)}
           onSelectCrossing={(id) => router.push(`/crossings/${id}`)}
           basemap={basemap}
@@ -198,7 +210,8 @@ export default function RiskMapPage() {
       </div>
 
       <aside
-        className="w-full overflow-auto border-s border-line bg-white lg:w-96"
+        className="w-full border-t border-line bg-white pb-20 lg:w-96 lg:overflow-auto lg:border-s lg:border-t-0 lg:pb-0"
+        id="segment-details"
         aria-label="Segment details"
       >
         {!sel && (

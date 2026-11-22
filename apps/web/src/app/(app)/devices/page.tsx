@@ -61,7 +61,7 @@ export default function DevicesPage() {
         title="Devices"
         sub="Fleet health. Units silent for more than 30 minutes are flagged offline."
       />
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Stat label="Online" value={count('ONLINE')} tone="teal" />
         <Stat label="Degraded" value={count('DEGRADED')} />
         <Stat

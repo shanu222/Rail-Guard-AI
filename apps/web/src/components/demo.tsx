@@ -50,7 +50,7 @@ export function DemoTab() {
           title="Demo data"
           sub="Simulated data for demonstrations. Every demo record is flagged and labelled DEMO DATA; it is never a Pakistan Railways result."
         />
-        <div className="grid gap-3 p-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
           <div className="rounded-lg border border-line p-3">
             <div className="text-xs text-ink-soft">Status</div>
             <div className="mt-1">

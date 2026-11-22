@@ -226,7 +226,7 @@ function WorkOrderModal({ id, onClose }: { id: string; onClose: () => void }) {
               </p>
               {w.notes && <p className="mt-2 rounded bg-slate-50 p-2 text-sm">{w.notes}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Status">
                 <Select
                   value={w.status}
