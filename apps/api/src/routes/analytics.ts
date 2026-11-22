@@ -57,23 +57,40 @@ export async function analyticsRoutes(app: FastifyInstance) {
       const div = scopeOf(req.user, b.divisionId)!;
       const division = await prisma.division.findUnique({ where: { id: div } });
       if (!division) throw new HttpError(404, 'Division not found');
-      const [summary, config, demoDevices] = await Promise.all([
-        monthSummary(div, b.month),
-        loadRiskConfig(),
-        prisma.device.count({ where: { divisionId: div, isDemo: true } }),
-      ]);
-      const me = await prisma.user.findUnique({
-        where: { id: req.user.sub },
-        select: { name: true, role: true },
-      });
-      const pdf = await buildMonthlyPdf({
-        divisionName: division.name,
-        month: b.month,
-        summary,
-        demo: env.DEMO_MODE || demoDevices > 0,
-        config,
-        generatedBy: me ? `${me.name} (${me.role})` : undefined,
-      });
+      // Name the failing step so a problem is diagnosable from the UI message and the logs.
+      const step = async <T>(name: string, fn: () => Promise<T>): Promise<T> => {
+        try {
+          return await fn();
+        } catch (err) {
+          const msg = (err as Error).message ?? String(err);
+          req.log.error({ err: msg, step: name }, 'report step failed');
+          throw new HttpError(
+            500,
+            `Report failed while ${name}: ${msg.trim().split('\n').pop()?.slice(0, 200)}`,
+          );
+        }
+      };
+      const [summary, config, demoDevices, me] = await step('loading report data', () =>
+        Promise.all([
+          monthSummary(div, b.month),
+          loadRiskConfig(),
+          prisma.device.count({ where: { divisionId: div, isDemo: true } }),
+          prisma.user.findUnique({
+            where: { id: req.user.sub },
+            select: { name: true, role: true },
+          }),
+        ]),
+      );
+      const pdf = await step('building the PDF', () =>
+        buildMonthlyPdf({
+          divisionName: division.name,
+          month: b.month,
+          summary,
+          demo: env.DEMO_MODE || demoDevices > 0,
+          config,
+          generatedBy: me ? `${me.name} (${me.role})` : undefined,
+        }),
+      );
       // Archive in private storage as a best effort: a storage problem must never stop the user
       // from getting the report they just asked for.
       let reportId: string | null = null;
